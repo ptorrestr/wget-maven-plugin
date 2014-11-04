@@ -28,6 +28,7 @@ import org.codehaus.plexus.archiver.manager.ArchiverManager;
 import org.codehaus.plexus.archiver.manager.NoSuchArchiverException;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.security.MessageDigest;
 
@@ -247,12 +248,20 @@ public class WGet extends AbstractMojo {
           {
             throw new MojoFailureException("Could not get content");
           }
+          cache.install(this.url, outputFile, this.md5, this.sha1);
         }
       }
-      cache.install(this.url, outputFile, this.md5, this.sha1);
-      if (this.unpack)
+      if ( this.unpack) 
       {
-        unpack(outputFile);
+        File tmpFile = new File(this.outputDirectory, this.outputFileName + ".tmp");
+        if ( tmpFile.exists() && !overwrite ) 
+        {
+          getLog().info("Extract Directory already exist, skipping");
+        }
+        else 
+        {
+          unpack(outputFile, tmpFile);
+        }
       }
     }
     catch (Exception ex)
@@ -262,12 +271,14 @@ public class WGet extends AbstractMojo {
   }
 
 
-  private void unpack(File outputFile) throws NoSuchArchiverException {
+  private void unpack(File outputFile, File tmpFile) throws NoSuchArchiverException, IOException {
     UnArchiver unarchiver = this.archiverManager.getUnArchiver(outputFile);
     unarchiver.setSourceFile(outputFile);
     unarchiver.setDestDirectory(this.outputDirectory);
+    unarchiver.setOverwrite(false);
     unarchiver.extract();
-    outputFile.delete();
+    FileUtils.writeStringToFile(tmpFile, "extracted");
+    //outputFile.delete();
   }
 
 
